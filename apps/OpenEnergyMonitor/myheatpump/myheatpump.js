@@ -28,6 +28,7 @@ config.app = {
     "heatpump_flowrate":{"type":"feed", "autoname":"heatpump_flowrate", "engine":5, "optional":true, "description":"Flow rate"},
     "heatpump_dhw":{"type":"feed", "autoname":"heatpump_dhw", "optional":true, "description":"Status of Hot Water circuit (non-zero when running)"},
     "heatpump_ch":{"type":"feed", "autoname":"heatpump_ch", "optional":true, "description":"Status of Central Heating circuit (non-zero when running)"},
+    "heatpump_wcT":{"type":"feed", "autoname":"heatpump_wcT", "optional":true, "description":"Weather Compensation Temperature"},
     "start_date":{"type":"value", "default":0, "name": "Start date", "description":_("Start date for all time values (unix timestamp)")},
 };
 config.feeds = feed.list();
@@ -411,6 +412,7 @@ $('#placeholder').bind("plothover", function (event, pos, item) {
                 else if (item.series.label=="ReturnT") { name = "ReturnT"; unit = "°C"; dp = 1; }
                 else if (item.series.label=="OutsideT") { name = "Outside"; unit = "°C"; dp = 1; }
                 else if (item.series.label=="RoomT") { name = "Room"; unit = "°C"; dp = 1; }
+                else if (item.series.label=="WCT") { name = "Weather Comp"; unit = "°C"; dp = 1; }
                 else if (item.series.label=="DHW") { name = "Hot Water"; unit = ""; dp = 0; }
                 else if (item.series.label=="CH") { name = "Central Heating"; unit = ""; dp = 0; }
                 else if (item.series.label=="Electric") { name = "Elec"; unit = "W"; }
@@ -642,6 +644,15 @@ function powergraph_load()
             powergraph_series.push({label:"CH", data:remove_null_values(data["heatpump_ch"]), yaxis:4, color:"#FB6", lines:style});
         } else {
             powergraph_series.push({label:"CH", data:data["heatpump_ch"], yaxis:4, color:"#FB6", lines:style});
+        }
+    }
+    if (feeds["heatpump_wcT"]!=undefined) {
+        data["heatpump_wcT"] = feed.getdata(feeds["heatpump_wcT"].id,view.start,view.end,view.interval,0,0,skipmissing,limitinterval);
+
+        if (all_same_interval) {
+            powergraph_series.push({label:"WCT", data:remove_null_values(data["heatpump_wcT"]), yaxis:2, color:"#ccc"});
+        } else {
+            powergraph_series.push({label:"WCT", data:data["heatpump_wcT"], yaxis:2, color:"#ccc"});
         }
     }
     if (feeds["heatpump_flowT"]!=undefined) { 
@@ -991,6 +1002,7 @@ function powergraph_load()
     feedstats["heatpump_returnT"] = stats(data["heatpump_returnT"]);
     if (data["heatpump_outsideT"]!=undefined) feedstats["heatpump_outsideT"] = stats(data["heatpump_outsideT"]);
     if (data["heatpump_roomT"]!=undefined) feedstats["heatpump_roomT"] = stats(data["heatpump_roomT"]);
+    if (data["heatpump_wcT"]!=undefined) feedstats["heatpump_wcT"] = stats(data["heatpump_wcT"]);
     if (data["heatpump_flowrate"]!=undefined) feedstats["heatpump_flowrate"] = stats(data["heatpump_flowrate"]);
     
     if (feedstats["heatpump_elec"].mean>0) {
@@ -1053,6 +1065,7 @@ function powergraph_load()
       "heatpump_returnT":"Return temperature",
       "heatpump_outsideT":"Outside temperature",
       "heatpump_roomT":"Room temperature",
+      "heatpump_wcT":"Weather comp temperature",
       "heatpump_flowrate":"Flow rate"
     }
     
@@ -1162,7 +1175,7 @@ function powergraph_draw()
             margin:{top:30}
         },
         selection: { mode: "x" },
-        legend:{position:"NW", noColumns:10}
+        legend:{position:"NW", noColumns:11}
     }
     if ($('#placeholder').width()) {
         $.plot($('#placeholder'),powergraph_series,options);
